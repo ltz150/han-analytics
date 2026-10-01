@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ltz-analytics",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-01",
+  "analytics_engine_datasets": [
+    { "binding": "AnalyticsBinding", "dataset": "AnalyticsDataset" }
+  ],
+  "vars": {
+    "CLOUDFLARE_ACCOUNT_ID": "f64001310a9dfa3e502fc6617acef621",
+    "CLOUDFLARE_WEBSITE_WHITELIST": "blog.litianzeng.cn,LTZ-Blog"
+  }
+}

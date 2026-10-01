@@ -10,10 +10,12 @@ export const vh_INIT = async (env, time, siteID, tz, type = null) => {
     // 获取数据
     case "visit":
       {
-        const query = `SELECT SUM(_sample_interval) AS views, SUM(IF(double1 = '1', double1, 0.0)) AS visitor, SUM(IF(double2 = '1', double2, 0.0)) AS visit ${SQL_WHERE}`;
+        const query = `SELECT SUM(_sample_interval) AS views, SUM(_sample_interval * double1) AS visitor, SUM(_sample_interval * double2) AS visit ${SQL_WHERE}`;
         const res = await fetch(defaultUrl, { method: "POST", body: query, headers: defaultHeaders });
-        const { data } = await res.json();
-        const { visitor, visit, views } = data[0];
+        const payload = await res.json();
+        if (!res.ok || !Array.isArray(payload.data)) throw new Error('Analytics SQL unavailable');
+        const data = payload.data;
+        const { visitor = 0, visit = 0, views = 0 } = data[0] || {};
         resJSON = { visitor: visitor >= 1000 ? `${(visitor / 1000).toFixed(1)}K` : visitor, visit: visit >= 1000 ? `${(visit / 1000).toFixed(1)}K` : visit, views: Number(views) >= 1000 ? `${(Number(views) / 1000).toFixed(1)}K` : Number(views) };
       }
       break;
@@ -23,7 +25,9 @@ export const vh_INIT = async (env, time, siteID, tz, type = null) => {
       {
         const query = "SELECT blob1 FROM AnalyticsDataset GROUP BY blob1";
         const res = await fetch(defaultUrl, { method: "POST", body: query, headers: defaultHeaders });
-        const { data } = await res.json();
+        const payload = await res.json();
+        if (!res.ok || !Array.isArray(payload.data)) throw new Error('Analytics SQL unavailable');
+        const data = payload.data;
         // 校验白名单
         if (env.CLOUDFLARE_WEBSITE_WHITELIST) {
           const websiteArr = env.CLOUDFLARE_WEBSITE_WHITELIST.split("|");
@@ -43,7 +47,9 @@ export const vh_INIT = async (env, time, siteID, tz, type = null) => {
       {
         const query = `SELECT formatDateTime(timestamp, '%Y-%m-%d %H:00:00') AS hour, SUM(_sample_interval) AS count ${SQL_WHERE} GROUP BY hour ORDER BY hour`;
         const res = await fetch(defaultUrl, { method: "POST", body: query, headers: defaultHeaders });
-        const { data } = await res.json();
+        const payload = await res.json();
+        if (!res.ok || !Array.isArray(payload.data)) throw new Error('Analytics SQL unavailable');
+        const data = payload.data;
         resJSON = echartsData(data, time, tz);
       }
       break;
@@ -51,9 +57,11 @@ export const vh_INIT = async (env, time, siteID, tz, type = null) => {
     default:
       {
         const keyARR = { path: "blob3", referrer: "blob4", os: "blob5", soft: "blob6", area: "blob7" };
-        const query = `SELECT ${keyARR[type]} ${SQL_WHERE}`;
+        const query = `SELECT ${keyARR[type]}, SUM(_sample_interval) AS count ${SQL_WHERE} GROUP BY ${keyARR[type]} ORDER BY count DESC LIMIT 100`;
         const res = await fetch(defaultUrl, { method: "POST", body: query, headers: defaultHeaders });
-        const { data } = await res.json();
+        const payload = await res.json();
+        if (!res.ok || !Array.isArray(payload.data)) throw new Error('Analytics SQL unavailable');
+        const data = payload.data;
         // 处理其他数据
         resJSON = countData(data, keyARR[type], {}).slice(0, 100);
         // 处理Area

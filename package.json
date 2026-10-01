@@ -1,5 +1,5 @@
 {
-  "name": "shadcn-vue",
+  "name": "ltz-han-analytics",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,8 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@radix-icons/vue": "^1.0.0",
@@ -46,5 +47,5 @@
     "vite": "^6.1.0",
     "vue-tsc": "^2.2.2"
   },
-  "packageManager": "pnpm@9.7.1+sha512.faf344af2d6ca65c4c5c8c2224ea77a81a5e8859cbc4e06b1511ddce2f0151512431dd19e6aff31f2c6a8f5f2aced9bd2273e1fed7dd4de1868984059d2c4247"
+  "packageManager": "pnpm@10.11.0"
 }

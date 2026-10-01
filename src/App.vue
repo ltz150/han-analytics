@@ -4,17 +4,17 @@
       <div class="main">
         <div class="logo">
           <img src="./assets/favicon.ico">
-          <span>Han Analytics</span>
+          <span>LTZ 访问统计</span>
         </div>
-        <h2>简单优雅的Web分析</h2>
+        <h2>LTZ博客访问统计</h2>
       </div>
     </header>
     <main>
       <header>
         <Alert>
           <AlertDescription>
-            <p>· Han Analytics 是一个简单的网络分析跟踪器和仪表板，托管在被称为赛博菩萨的 Cloudflare 上,无成本稳定运行,每天可达10万次免费统计。</p>
-            <p>· 域名、服务器、数据库 通通都不用! 托管在 Cloudflare Pages 上即可快速部署网站分析仪表板。</p>
+            <p>记录 LTZ博客的浏览量、访客与访问来源。今日统计按北京时间计算。</p>
+            <p>展示启用统计后近 90 天的数据；不同统计工具的去重方式可能不同。</p>
             <p style="font-weight: bold;">· 开源地址: <a class="git-link" href="https://github.com/uxiaohan/HanAnalytics"
                 target="_blank">Han-Analytics</a>
             </p>
@@ -229,7 +229,7 @@
         <a href="https://www.cloudflare.com/zh-cn/application-services/products/cdn/" target="_blank"
           rel="noopener noreferrer"><img src="./assets/svg/cdn.svg"></a>
         <a href="https://vuejs.org" target="_blank" rel="noopener noreferrer"><img src="./assets/svg/web.svg"></a>
-        <a href="https://api.vvhan.com" target="_blank"><img src="./assets/svg/surppot.svg"></a>
+        <a href="https://blog.litianzeng.cn" target="_blank" rel="noopener noreferrer">LTZ博客</a>
       </p>
     </footer>
   </section>
@@ -243,7 +243,7 @@
         <AlertDialogDescription>
         </AlertDialogDescription>
       </AlertDialogHeader>
-      <Input type="text" placeholder="Password" v-model="loginPassword" />
+      <Input type="password" placeholder="Password" v-model="loginPassword" />
       <AlertDialogFooter>
         <Button :disabled="loginStatus" @click="loginFn">
           <Loader2 v-show="loginStatus" class="w-4 h-4 mr-2 animate-spin" />登录
@@ -303,7 +303,7 @@ const getSiteList = async () => {
     const res = await fetch('/api', { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify({ type: 'list', session: session.value }) })
     const data = await res.json()
     if (data.code && data.code === 401) {
-      localStorage.clear()
+      localStorage.removeItem('session')
       authStatus.value = true
     }
     if (!data.success) return toast({ description: data.message, variant: 'destructive' });
@@ -338,7 +338,7 @@ const getDatas = async () => {
           const res = await fetch('/api', { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(pms) })
           const data = await res.json()
           if (data.code && data.code === 401) {
-            localStorage.clear()
+            localStorage.removeItem('session')
             authStatus.value = true;
           }
           if (!data.success) return toast({ description: data.message, variant: 'destructive' });

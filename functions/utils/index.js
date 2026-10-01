@@ -6,32 +6,11 @@ dayjs.extend(timezone);
 
 // SqlTIme格式化
 export const formatTime = (timeStr, tz) => {
-  const defaultTz = new Intl.DateTimeFormat([], { timeZone: undefined }).resolvedOptions().timeZone || "UTC";
-  const startDay = dayjs()
-    .tz(tz)
-    .subtract(Number(timeStr.replace("d", "")), "day")
-    .startOf("day")
-    .tz(defaultTz)
-    .format("YYYY-MM-DD HH:mm:ss");
-  const endDay = dayjs()
-    .tz(tz)
-    .add(timeStr == "1d" ? 0 : 1, "day")
-    .startOf("day")
-    .tz(defaultTz)
-    .format("YYYY-MM-DD HH:mm:ss");
-  let sqlTime = "";
-  switch (timeStr) {
-    case "1d":
-    case "7d":
-    case "30d":
-    case "60d":
-    case "90d":
-      sqlTime = `toDateTime('${startDay}') AND timestamp < toDateTime('${endDay}')`;
-      break;
-    default:
-      sqlTime = `NOW() - INTERVAL '${dayjs().tz(tz).hour()}' HOUR`;
-  }
-  return sqlTime;
+  const now = dayjs().tz(tz);
+  const days = timeStr === 'today' ? 1 : Number(timeStr.replace('d', ''));
+  const start = now.startOf('day').subtract(timeStr === '1d' ? 1 : days - 1, 'day');
+  const end = now.startOf('day').add(timeStr === '1d' ? 0 : 1, 'day');
+  return "toDateTime('" + start.utc().format('YYYY-MM-DD HH:mm:ss') + "', 'UTC') AND timestamp < toDateTime('" + end.utc().format('YYYY-MM-DD HH:mm:ss') + "', 'UTC')";
 };
 
 // 次数统计

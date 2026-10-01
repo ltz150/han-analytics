@@ -1,44 +1,35 @@
-import { UAParser } from "ua-parser-js";
+import { UAParser } from 'ua-parser-js';
+import { sites, headers, validSite } from './utils/http.js';
 export async function onRequest({ request, env }) {
+  const cors = headers(request, env);
+  const json = (data, status = 200) => Response.json(data, { status, headers: cors });
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+  if (request.method !== 'POST') return json({ success: false, message: 'Method not allowed' }, 405);
+  let data;
+  try { data = await request.json(); } catch { return json({ success: false, message: 'Invalid JSON' }, 400); }
+  if (!data || !validSite(data.website) || typeof data.host !== 'string') return json({ success: false, message: 'Invalid site' }, 400);
+  const { host, website, visitor, visit } = data;
+  if (!sites(env).some(([domain, id]) => domain === host && id === website)) return json({ success: false, message: 'Site not allowed' }, 403);
+  if (request.headers.get('Origin') !== 'https://' + host) return json({ success: false, message: 'Origin not allowed' }, 403);
+  if (!env.AnalyticsBinding) return json({ success: false, message: 'Analytics binding not configured' }, 503);
+  const userAgent = (request.headers.get('user-agent') || '').slice(0, 512);
+  const { browser, os } = new UAParser(userAgent).getResult();
+  let path = '/', referrer = '';
   try {
-    const { host, path, referrer, website, visitor, visit } = await request.json();
-    // 校验统计白名单
-    if (env.CLOUDFLARE_WEBSITE_WHITELIST) {
-      const websiteArr = env.CLOUDFLARE_WEBSITE_WHITELIST.split("|");
-      const currentWebsite = websiteArr.find(i => i.includes(website) && i.includes(host));
-      if (!currentWebsite) return Response.json({ success: false, message: "当前网站不在白名单内" }, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
+    const page = new URL(data.path || '/', 'https://' + host);
+    if (page.hostname !== host) return json({ success: false, message: 'Invalid page' }, 400);
+    path = page.pathname.slice(0, 2048);
+    if (data.referrer) {
+      const source = new URL(data.referrer);
+      if (['https:', 'http:'].includes(source.protocol) && source.hostname !== host) referrer = source.origin;
     }
-    // UA
-    const userAgent = request.headers.get("user-agent") || undefined;
-    const parsedUserAgent = new UAParser(userAgent);
-    const { browser, os } = parsedUserAgent.getResult();
-    // Area
-    const area = request.cf ? (String(request.cf.country).trim() || "Unknown") : "Unknown";
-    // Referrer
-    let referrerUrl = "";
-    try {
-      referrerUrl = new URL(referrer).host == host ? "" : referrer;
-    } catch (error) {
-      referrerUrl = referrer;
-    }
-    // 写数据
-    website &&
-      host &&
-      env.AnalyticsBinding.writeDataPoint({
-        blobs: [
-          website, //website - blob1
-          host, //Host - blob2
-          path || '/', //path - blob3
-          referrerUrl, //referrer - blob4
-          os.name == 'android' ? 'Android' : (os.name || "Unknown"), //osName - blob5
-          browser.name == "Chrome WebView" ? "Chrome" : (browser.name || "Unknown"), //browserName - blob6
-          area, //areaCode - blob7
-          userAgent //UA - blob8
-        ],
-        doubles: [visitor ? 1 : 0, visit ? 1 : 0]
-      }); // Response
-  } catch (error) {
-    return Response.json({ success: false, error, message: "Han Analytics Send Error" }, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
-  }
-  return Response.json({ success: true, message: "Hello Han Analytics" }, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
+  } catch { return json({ success: false, message: 'Invalid URL' }, 400); }
+  try {
+    env.AnalyticsBinding.writeDataPoint({
+      indexes: [website],
+      blobs: [website, host, path, referrer, os.name || 'Unknown', browser.name === 'Chrome WebView' ? 'Chrome' : (browser.name || 'Unknown'), request.cf?.country || 'Unknown', userAgent],
+      doubles: [visitor === true ? 1 : 0, visit === true ? 1 : 0],
+    });
+    return json({ success: true });
+  } catch { return json({ success: false, message: 'Analytics unavailable' }, 503); }
 }
